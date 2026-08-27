@@ -10,8 +10,12 @@
 > facturation → première facture → PDF légal DOM-TOM.
 >
 > Public : commerciaux, chefs de projet fonctionnels, administrateurs
-> métier, référents fiscalité. Une section technique est proposée en
-> annexes pour l'équipe intégration.
+> métier, référents fiscalité.
+>
+> Un **guide technique compagnon** (`demo-billing-contrat-refacturation-technique.md`)
+> regroupe toutes les informations d'environnement, scripts, URLs
+> directes, requêtes de contrôle et dépannage serveur — à destination de
+> l'équipe d'intégration.
 
 ---
 
@@ -30,8 +34,7 @@
 | §9 Connexion Splynx | 2 min | Configuration d'un serveur Splynx (optionnel) |
 | §10 Démonstration souscription | 8-10 min | Devis → contrat → facturation → PDF |
 | §11 Limitations connues | — | Ce qui n'est pas disponible dans la version actuelle |
-| §12 Dépannage | — | Erreurs courantes et parades |
-| §13 Annexes techniques | — | Scripts, URLs, requêtes |
+| §12 Dépannage utilisateur | — | Messages d'erreur courants et parades côté utilisateur |
 
 **Durée totale démo** : 35-45 min (peut être resserrée à 20-25 min en
 sautant §6 et §9).
@@ -88,7 +91,7 @@ devis, soit via un avenant après souscription ».
 | Réactivation 24/7 sur paiement | À la réception d'un paiement, réactivation automatique (même week-end / jour férié si l'option est activée). | ✅ Disponible | Requiert un contrat suspendu |
 | Interrupteur global workflow impayés | Décocher **Activer les suspensions** dans les paramètres → plus aucune suspension programmée (utile en cas d'incident majeur). | ✅ Disponible | §6.1 |
 | **Cycle mensuel automatique des factures** | Tâche quotidienne nocturne (03 h, fuseau du tenant) qui génère les factures récurrentes aux jours anniversaire des comptes de facturation. Désactivée par défaut, à activer après configuration. | ✅ Disponible | §11.2 |
-| **1ʳᵉ facture générée à l'activation du contrat** | À l'activation d'un contrat, la première facture prorata est créée automatiquement (sans intervention manuelle). | ⚠️ Livré, nécessite un module comptable de conformité fiscale FR (hash chain L102 B) pour être opérationnel en environnement standard | §10.6 |
+| **1ʳᵉ facture générée à l'activation du contrat** | À l'activation d'un contrat, la première facture prorata est créée automatiquement (sans intervention manuelle). | ⚠️ Livré, correctif de compatibilité en cours pour l'environnement de démonstration | §10.6 |
 | **Archivage automatique des contrats terminés** | Tâche quotidienne (03 h 05) qui fait basculer les contrats **Résilié** vers **Archivé** après un délai configurable (30 jours par défaut). État Archivé immuable. | ✅ Disponible | §5.6 · §10.9 |
 | **Pénalité forfaitaire (flat fee)** | Résiliation avec pénalité fixe configurable par tenant (montant + devise). Cohabite avec la Loi Chatel FR (choix par tenant). | ✅ Disponible | §5.3 |
 | **Relances impayés automatiques** | Politique de dunning en cours de développement — visible en démo technique uniquement. | ❌ En cours | §11.3 |
@@ -100,26 +103,18 @@ devis, soit via un avenant après souscription ».
 
 ## 2. Prérequis
 
-### 2.1 Environnement
+La démonstration se déroule sur le tenant **Coqla** :
 
-L'environnement Odoo est démarré et accessible sur `http://localhost:8169`.
-La base de données utilisée pour la démonstration est `axia_dev`. Deux
-tenants sont provisionnés :
+- Société : **Coqla**
+- Devise : **EUR**
+- Pays : **Saint-Martin (partie française)**
+- Régime fiscal : DOM-TOM (TVA 8,5 %)
 
-| Nom | Devise | Pays | Recommandation |
-| --- | --- | --- | --- |
-| My Company | USD | Guadeloupe | À éviter pour une démo client (devise USD figée, PDF en `$`) |
-| **Coqla** | **EUR** | **Saint-Martin (partie française)** | ✅ **Recommandé pour la démo** — PDF en euros, régime DOM-TOM |
+Le tenant Coqla est prêt à l'emploi avec :
 
-Pour une démo client formelle, une base fraîche entièrement en euros peut
-être provisionnée via le script d'infrastructure (voir §13).
-
-### 2.2 État initial du tenant Coqla
-
-Le tenant Coqla dispose des éléments préparés pour la démo :
-
-- Plan comptable installé, journal de vente `Customer Invoices` créé
-- Taxe **TVA 8,5 % (Saint-Martin/DOM-TOM)**
+- Plan comptable installé
+- Taxe **TVA 8,5 % (Saint-Martin/DOM-TOM)** créée et attachée aux
+  produits
 - Position fiscale **Saint-Martin (DOM-TOM)** avec libellé fiscal AXIA
   posé à `TVA 8,5 %` et mapping automatique TVA 20 % → 8,5 %
 - 3 offres commerciales pré-provisionnées (Fibre 100M, Triple Play,
@@ -127,21 +122,26 @@ Le tenant Coqla dispose des éléments préparés pour la démo :
 - 11 paramètres tenant configurés (signature, résiliation, workflow
   impayés)
 
+Un compte administrateur pré-configuré permet d'accéder à tous les
+menus AXIA (Commercial, Billing Manager, Administrateur AXIA) ainsi
+qu'aux menus Odoo standard (Ventes, Facturation).
+
+*Pour la mise en place initiale de l'environnement, l'installation
+serveur et le provisionnement d'une base fraîche pour une démo client
+formelle, voir le guide technique compagnon.*
+
 ---
 
 ## 3. Étape 1 — Connexion et sélection du tenant Coqla
 
 ### 3.1 Connexion
 
-Ouvrir `http://localhost:8169/web/login`
+Ouvrir l'écran de connexion Odoo dans le navigateur.
 
 ![Écran de connexion Odoo](images/demo/01-login.png)
 
-| Champ | Valeur |
-| --- | --- |
-| Base de données | `axia_dev` |
-| Identifiant | `admin` |
-| Mot de passe | `admin` |
+Saisir l'identifiant et le mot de passe du compte administrateur
+préparé pour la démonstration.
 
 ### 3.2 Basculer sur le tenant Coqla
 
@@ -686,11 +686,10 @@ automatiquement dans le journal `Ventes Abonnements AXIA` du tenant.
 Elle apparaît directement dans le menu `AXIA — RBM → Factures récurrentes`
 au statut **Comptabilisé**.
 
-> ⚠️ **En environnement standard** : la génération automatique de la
-> première facture nécessite un module externe pour la conformité fiscale
-> FR (chaîne d'inaltérabilité `secure_sequence_id`). En son absence, la
-> création est mise en échec et la facture doit être créée à la main
-> selon la procédure ci-dessous jusqu'au fix Community à venir.
+> ⚠️ **Sur l'environnement de démonstration actuel** : un correctif de
+> compatibilité est en cours pour rendre cette génération automatique
+> pleinement opérationnelle. En attendant, la première facture peut être
+> créée à la main selon la procédure ci-dessous.
 
 **Procédure manuelle (parade temporaire)** — menu `AXIA — RBM →
 Factures récurrentes → Nouveau`
@@ -829,16 +828,13 @@ La tâche quotidienne nocturne (03 h) qui génère les factures récurrentes
 aux jours anniversaire est **livrée**. Elle est **désactivée par défaut**
 et doit être activée après configuration du tenant (§10.8).
 
-**Limitation en environnement Community standard** : la génération
-automatique de la **première facture** à l'activation du contrat requiert
-une chaîne d'inaltérabilité (hash chain) fournie par un module externe.
-En son absence, la première facture doit être créée manuellement selon
-la procédure §10.6. Les factures récurrentes du cycle mensuel suivant
-partagent la même contrainte tant que le journal AXIA n'est pas
-provisionné.
+**Limitation actuelle** : la génération automatique de la **première
+facture** à l'activation du contrat n'est pas encore opérationnelle sur
+l'environnement de démonstration. En attendant le correctif, la première
+facture est créée manuellement selon §10.6. Les factures récurrentes des
+cycles suivants seront concernées par la même contrainte.
 
-**Statut** : fonctionnalité livrée, correctif de compatibilité en cours
-pour supprimer cette dépendance.
+**Statut** : fonctionnalité livrée, correctif de compatibilité en cours.
 
 ### 11.3 Workflow de relances (dunning)
 
@@ -856,13 +852,15 @@ Aucune vue Odoo ne permet de lister ou modifier les jours fériés. Ils
 sont déterminés automatiquement par le pays configuré dans la fiche
 société (§5.3) et dans les paramètres du workflow impayés (§6.4).
 
-### 11.5 Serveurs Splynx en URLs de test
+### 11.5 Connexion Splynx en environnement de démonstration
 
-Les 4 serveurs Splynx pré-provisionnés pointent vers des URLs de test.
-L'ordre d'activation vers Splynx échoue en démo mais l'événement est
-correctement tracé dans l'audit. Pour une démo formelle : soit connecter
-un vrai serveur Splynx de bac à sable, soit désactiver temporairement le
-module Splynx.
+Les serveurs Splynx configurés sur l'environnement de démonstration ne
+pointent pas vers de vrais services Splynx — ils servent uniquement à
+montrer la mécanique de la fiche serveur, le chiffrement des secrets et
+la traçabilité de l'événement d'activation.
+
+**Pour une démo client formelle** : configurer un vrai serveur Splynx de
+bac à sable en amont, en collaboration avec l'équipe d'intégration.
 
 ### 11.6 Mise en page PDF de facture
 
@@ -900,152 +898,47 @@ Vérifier que l'option **Génère un contrat CLM** est cochée sur le
 produit de la ligne du devis. Sinon, le contrat ne sera pas créé
 automatiquement.
 
-### 12.4 Le compte de facturation n'apparaît pas
+### 12.4 Le compte de facturation ne s'affiche pas après activation
 
-- Vérifier que le service d'arrière-plan (jobrunner) fonctionne
-- Vérifier dans la file d'attente des tâches que la création du compte
-  s'est terminée en succès
+La création du compte de facturation est faite en arrière-plan et peut
+prendre quelques secondes. Rafraîchir la liste **AXIA — RBM → Comptes
+de facturation**. Si le compte reste absent au bout de 30 secondes,
+solliciter l'équipe d'intégration (le traitement d'arrière-plan est
+peut-être suspendu).
 
-### 12.5 PDF de facture vide ou en erreur
+### 12.5 Le PDF de facture ne s'ouvre pas
 
-Vérifier que le générateur PDF (wkhtmltopdf) est installé côté serveur.
-Fallback : afficher le rapport en HTML dans le navigateur.
+Solliciter l'équipe d'intégration — un composant serveur peut être
+manquant ou hors service.
 
 ### 12.6 « Aucun journal trouvé pour la société X »
 
 La société n'a pas de plan comptable installé. Aller dans
-**Configuration → Sociétés → [Société]** puis lancer **Configurer la
-comptabilité**.
+**Configuration → Sociétés → [Société]** puis cliquer sur **Configurer
+la comptabilité**.
 
 ### 12.7 La position fiscale ne s'applique pas automatiquement sur le devis
 
 - Vérifier que **Détecter automatiquement** est coché sur la position
-  fiscale
-- Vérifier que le pays de la position correspond à celui du client
-- Sélectionner manuellement sur le devis (onglet **Autres
-  informations**) en dernier recours
+  fiscale (§4.3)
+- Vérifier que le pays de la position correspond au pays du contact
+  client
+- En dernier recours, sélectionner manuellement sur le devis (onglet
+  **Autres informations**)
 
 ---
 
-## 13. Annexes techniques
+## Pour aller plus loin
 
-*Cette section s'adresse à l'équipe d'intégration.*
-
-### 13.1 Setup complet Coqla (reproductibilité)
-
-Script `docs/scripts/setup_coqla_demo.py` qui, en une commande :
-
-1. Nettoie tous les contrats, devis, factures AXIA préexistants
-2. Ajoute l'administrateur aux groupes AXIA, Ventes et Facturation requis
-3. Bascule l'administrateur sur Coqla comme société par défaut
-4. Crée la taxe TVA 8,5 % (Saint-Martin/DOM-TOM)
-5. Crée la position fiscale « Saint-Martin (DOM-TOM) » avec libellé
-   fiscal AXIA et mapping automatique TVA 20 % → 8,5 %
-6. Provisionne 3 offres (Fibre 100M, Triple Play, Fibre 1 Gb Pro)
-7. Configure 11 paramètres tenant (signature, résiliation, workflow
-   impayés)
-
-Exécution (depuis la racine du projet) :
-
-```bash
-docker cp docs/scripts/setup_coqla_demo.py deploy-odoo-1:/tmp/
-docker exec deploy-odoo-1 sh -c \
-  'echo "exec(open(\"/tmp/setup_coqla_demo.py\").read())" | \
-   odoo shell -c /etc/odoo/odoo.conf --db_host=postgres --db_port=5432 \
-   --db_user=odoo --db_password=odoo -d axia_dev --no-http --log-level=error'
-```
-
-### 13.2 Ré-provisionner un jeu de démo complet
-
-Script `docs/scripts/test_coqla_e2e.py` — crée en ~5 secondes un client
-+ devis + contrat activé + compte de facturation + facture prorata
-validée + PDF rendu. Usage identique à §13.1.
-
-### 13.3 Provisionner une base fraîche EUR
-
-Pour une démonstration formelle, une base fraîche entièrement en euros
-peut être générée :
-
-```bash
-./docs/scripts/provision_demo_prod.sh                 # base axia_demo_prod
-./docs/scripts/provision_demo_prod.sh demo_client_x   # nom personnalisé
-```
-
-Durée : 8-12 min. À lancer H-24 minimum avant la présentation client
-pour laisser le temps de vérifier chaque écran et de configurer des
-fixtures spécifiques.
-
-### 13.4 URLs directes pour la démo (favoris à préparer)
-
-Base : `http://localhost:8169/`
-
-| Vue | URL |
-| --- | --- |
-| Connexion | `/web/login` |
-| Ventes → Devis | `/odoo/sales` |
-| Contrats | `/odoo/action-397` |
-| Comptes de facturation | `/odoo/action-419` |
-| Factures récurrentes AXIA | `/odoo/action-427` |
-| Facturation → Taxes | `/odoo/action-account.action_tax_form` |
-| Positions fiscales | `/odoo/action-account.action_account_fiscal_position_form` |
-| Configuration Sociétés | `/odoo/settings#companies` |
-| Configuration workflow impayés | `/odoo/settings` |
-| Utilisateurs | `/odoo/settings#users` |
-| File d'attente des tâches (technique) | `/odoo/action-queue_job.action_queue_job` |
-| Événements d'audit (technique) | `/odoo/action-axia_audit.action_axia_audit_event` |
-
-### 13.5 Requêtes de contrôle rapide
-
-Contrats et comptes de facturation d'un tenant :
-
-```sql
-SELECT c.number, c.state,
-       ba.number AS billing, ba.state AS billing_state
-FROM axia_contract c
-LEFT JOIN axia_billing_account ba ON ba.contract_id = c.id
-WHERE c.company_id = 20  -- Coqla
-ORDER BY c.id;
-```
-
-Factures récurrentes AXIA :
-
-```sql
-SELECT name, state, axia_invoice_type,
-       axia_period_start, axia_period_end, axia_cycle_index,
-       amount_untaxed, amount_total, currency_id
-FROM account_move
-WHERE axia_invoice_type IS NOT NULL AND company_id = 20
-ORDER BY id;
-```
-
-Traçabilité par identifiant de corrélation :
-
-```sql
-SELECT event_type, target_model, target_id, created_at AT TIME ZONE 'UTC'
-FROM axia_audit_event
-WHERE correlation_id = '<uuid>'
-ORDER BY created_at;
-```
-
-### 13.6 Bilan de validation live
-
-Le guide a été vérifié en environnement réel avec les résultats
-suivants :
-
-| Étape | Résultat |
-| --- | --- |
-| Plan comptable Coqla | ✅ installé, journal Customer Invoices créé |
-| Nettoyage | ✅ 0 contrat / devis / facture actif |
-| Taxe TVA 8,5 % | ✅ créée + mapping fiscal actif |
-| Position fiscale | ✅ Saint-Martin (DOM-TOM) avec libellé fiscal AXIA |
-| Catalogue d'offres | ✅ 3 offres (Fibre 100M · Triple Play · Fibre 1 Gb Pro) |
-| Paramètres tenant | ✅ 11 champs configurés |
-| Flux complet | ✅ devis → contrat actif → compte de facturation → facture validée |
-| Facture prorata | ✅ HT 16,10 · TVA 8,5 % 1,37 · TTC 17,47 EUR |
-| PDF | ✅ devise €, position fiscale, mention légale DOM-TOM |
-| Traçabilité | ✅ chaîne de 8 événements sur un identifiant de corrélation |
-| Cycle mensuel automatique | ✅ tâche quotidienne 03 h présente (désactivée par défaut) |
-| 1ʳᵉ facture à l'activation | ⚠️ nécessite module externe pour la conformité fiscale FR |
-| Archivage automatique J+30 | ✅ tâche quotidienne 03 h 05 active, délai configurable par tenant |
-| Pénalité forfaitaire | ✅ champs disponibles sur la fiche société (montant + devise) |
-| État Archivé (immuable) | ✅ statut final ajouté à la barre d'état contrat |
+- **Répétition à blanc** : la première fois qu'on présente le guide, il
+  est recommandé de dérouler l'intégralité du parcours §3 à §10 en
+  chronométrant pour se familiariser avec les enchaînements et les
+  temps de chargement.
+- **Personnalisation pour un prospect** : le nom du contact démo (Sophie
+  MARTIN), l'adresse, les intitulés d'offres peuvent être adaptés au
+  contexte du prospect avant la présentation. Voir le guide technique
+  pour la procédure de ré-provisionnement.
+- **Guide technique compagnon** :
+  `demo-billing-contrat-refacturation-technique.md` regroupe les scripts
+  de démonstration, les URLs directes utiles en favoris, les procédures
+  de dépannage serveur et les points d'attention côté environnement.
