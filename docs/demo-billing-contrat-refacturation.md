@@ -92,8 +92,8 @@ devis, soit via un avenant après souscription ».
 | Interrupteur global workflow impayés | Décocher **Activer les suspensions** dans les paramètres → plus aucune suspension programmée (utile en cas d'incident majeur). | ✅ Disponible | §6.1 |
 | **Cycle mensuel automatique des factures** | Tâche quotidienne nocturne (03 h, fuseau du tenant) qui génère les factures récurrentes aux jours anniversaire des comptes de facturation. Désactivée par défaut, à activer après configuration. | ✅ Disponible | §11.2 |
 | **1ʳᵉ facture générée à l'activation du contrat** | À l'activation d'un contrat, la première facture prorata est créée automatiquement (sans intervention manuelle). | ⚠️ Livré, dernier alignement de compatibilité en cours pour l'environnement de démonstration | §10.6 |
-| **Archivage automatique des contrats terminés** | Tâche quotidienne (03 h 05) qui fait basculer les contrats **Résilié** vers **Archivé** après un délai configurable (30 jours par défaut). État Archivé immuable. | ✅ Disponible | §5.6 · §10.9 |
-| **Pénalité forfaitaire (flat fee)** | Résiliation avec pénalité fixe configurable par tenant (montant + devise). Cohabite avec la Loi Chatel FR (choix par tenant). | ✅ Disponible | §5.3 |
+| **Archivage automatique des contrats terminés** | Tâche quotidienne (03 h 05) qui fait basculer les contrats **Résilié** vers **Archivé** après un délai configurable (30 jours par défaut). État Archivé immuable. | ✅ Disponible | §5.3.2 · §10.9 |
+| **Pénalité forfaitaire (flat fee)** | Résiliation avec pénalité fixe configurable par tenant (montant + devise). Cohabite avec la Loi Chatel FR (choix par tenant). | ✅ Disponible | §5.3.1 |
 | **Grille tarifaire par palier d'ancienneté** | Sur la fiche produit, définir des paliers de prix qui changent après N mois d'engagement (par exemple 29,90 € les 12 premiers mois puis 39,90 € à partir du 13ᵉ mois). Résolu automatiquement au cycle mensuel. | ✅ Disponible | §7.6 |
 | **Facturation ponctuelle d'avenant** | Lors d'un avenant (upgrade offre, ajout d'option) sur un contrat actif, une facture d'ajustement est générée automatiquement pour la différence de tarif au prorata. | ✅ Disponible | §10.10 |
 | **Dépôt de garantie (caution matériel)** | Facture de dépôt émise à l'activation, rapprochement automatique du paiement, restitution à la résiliation avec retenue partielle possible (dommage matériel), pièce justificative et reçu PDF. | ✅ Disponible | §10.11 |
@@ -234,16 +234,16 @@ contient au moins une ligne.
 
 ---
 
-## 5. Étape 3 — Configuration tenant AXIA
+## 5. Étape 3 — Configuration tenant AXIA (fiche société)
 
 **Menu** : `Configuration → Sociétés → Sociétés → Coqla`
 
 ![Liste des sociétés](images/demo/04-companies-list.png)
 
-Les configurations AXIA sont présentées sous forme de **sections**
-directement dans la fiche société (pas dans des onglets séparés). En
-scrollant on trouve les blocs « AXIA — Configuration signature »,
-« AXIA — Facturation par défaut », « AXIA — Résiliation », etc. :
+Sur la **fiche société**, deux sections AXIA sont exposées à
+l'utilisateur admin. Les autres paramètres tenant (résiliation,
+archivage, journal facturation) sont posés au **provisionnement du
+tenant** par script d'onboarding — voir §5.3.
 
 ![Fiche société Coqla — sections AXIA](images/demo/05-company-coqla-form.png)
 
@@ -253,74 +253,122 @@ scrollant on trouve les blocs « AXIA — Configuration signature »,
 | --- | --- | --- |
 | Fournisseur de signature | Signature électronique · Signature manuscrite scannée | **Signature manuscrite scannée** |
 
+**Effet concret** : détermine comment le contrat est signé côté client
+à l'issue du devis. Selon le mode, l'écran d'activation du contrat
+propose soit l'upload d'un scan de signature manuscrite, soit
+l'invitation à signer en ligne.
+
+**Scénarios types** :
+
+| Contexte | Réglage typique | Ce que voit l'utilisateur |
+| --- | --- | --- |
+| FAI DOM-TOM en boutique | **Manuscrite scannée** | Commercial fait signer sur tablette/papier, uploade le scan sur le contrat |
+| FAI métropole 100 % en ligne | **Électronique** | Client reçoit un lien e-mail, signe en ligne — le contrat s'active tout seul à la réception du certificat |
+
 ### 5.2 Section « AXIA — Facturation par défaut »
 
 | Champ | Valeurs possibles | Démo Coqla |
 | --- | --- | --- |
 | Mode de paiement par défaut | SEPA prélèvement · Virement · Chèque · Espèces · Carte | **SEPA prélèvement** |
 
-### 5.3 Section « AXIA — Résiliation »
+**Effet concret** : ce mode est proposé automatiquement à la création
+d'un nouveau contrat client ; le commercial peut le modifier à la
+main sur le devis. C'est aussi le mode communiqué sur les rappels /
+échéanciers pour instruire le client sur le moyen de règlement
+attendu.
 
-| Champ | Démo Coqla | Signification |
+**Scénarios types** :
+
+| Contexte | Réglage typique | Effet en cascade |
 | --- | --- | --- |
-| Préavis résiliation (jours) | **30** | Préavis calendaire minimum |
-| Politique de pénalité | **Loi Chatel FR — plafond 25 % après M+12** | Pénalité plafonnée à 25 % du reste dû à partir du 13ᵉ mois |
-| Plafond pénalité (%) | 25 | Plafond en pourcentage (si applicable) |
-| Plafond appliqué à partir du mois | 12 | Mois à partir duquel le plafond entre en vigueur |
-| Montant pénalité forfaitaire | (défaut vide) | Alternative : pénalité fixe (utile pour marchés SN, ML — ex. 30 000 FCFA) |
-| Devise pénalité forfaitaire | (défaut vide) | Devise de la pénalité forfaitaire |
-| Pays du calendrier fériés | **FR** | Pays de référence pour les jours fériés |
-| Subdivision DOM-TOM | 971 (option) | Guadeloupe = 971, Martinique = 972, etc. |
-| Politique motif légitime | **Activée (workflow validation opérateur requis)** | Résiliation sans pénalité possible après validation opérateur |
+| Marché FR/DOM-TOM avec IBAN systématique | **SEPA prélèvement** | Le devis pré-remplit SEPA, un mandat est demandé à l'activation |
+| Marché SN/ML majoritairement mobile-money | **Virement** (fallback) | Chaque contrat sera ajusté manuellement au bon moyen (Orange Money, Wave, etc. — mapping en cours) |
+| Zone à forte trésorerie liquide (petits commerçants) | **Espèces** | Génère des reçus manuels, pas de rapprochement bancaire automatique |
 
-**Note démo — pénalité forfaitaire vs Loi Chatel** : sur les marchés où la
-Loi Chatel FR ne s'applique pas (Sénégal, Mali), un tenant peut basculer
-en pénalité forfaitaire : montant fixe unique (par exemple 30 000 FCFA)
-plutôt que le calcul « reste dû plafonné 25 % ». Les deux modes
-cohabitent dans le code — l'admin choisit par tenant.
+### 5.3 Configurations tenant sans UI (posées au provisionnement)
 
-**Point démo** : ces champs matérialisent la conformité juridique locale
-— Loi Chatel FR, jours fériés adaptés à Saint-Martin, motif légitime
-(déménagement à l'étranger, force majeure) soumis à validation
-opérateur.
+Les paramètres suivants existent dans le modèle société mais **ne
+sont pas exposés dans l'interface admin** aujourd'hui. Ils sont posés
+une fois pour toutes par un script d'onboarding du tenant (voir
+`docs/scripts/setup_coqla_demo.py` dans le guide technique), puis
+figés pour ce tenant. Un admin métier ne peut pas les modifier depuis
+Odoo.
 
-### 5.4 Section « AXIA — Suspension (approbation) »
+**Rationale** : ces valeurs matérialisent la conformité juridique
+locale (Loi Chatel, jours fériés, plafond de pénalité) et changent
+rarement une fois posées. Une modification non maîtrisée pourrait
+mettre le tenant en défaut légal — d'où le choix « admin technique
+uniquement ». L'ouverture UI est prévue mais n'est pas encore
+livrée.
 
-| Champ | Signification |
-| --- | --- |
-| Mode d'approbation avant suspension | Automatique / manuel / hybride |
-| Timeout d'attente approbation (heures) | Délai avant escalade |
-| Seuil auto-approbation (mode hybride) | Nombre de jours au-delà duquel l'approbation devient automatique |
+#### 5.3.1 Résiliation (9 paramètres)
 
-### 5.5 Section « AXIA — Archivage »
-
-| Champ | Démo Coqla | Signification |
+| Champ (technique) | Valeur Coqla posée par script | Effet concret |
 | --- | --- | --- |
-| Délai d'archivage (jours) | **30** | Nombre de jours après résiliation avant archivage automatique. Typique : 30 (SN), 60 (FR), 90 (NC). |
+| `axia_termination_notice_period_days` | **30** | Préavis calendaire minimum avant fin effective du contrat |
+| `axia_termination_penalty_policy` | **`loi_chatel_fr`** | Plafonnement des pénalités selon la Loi Chatel (marchés FR/DOM-TOM) |
+| `axia_termination_penalty_cap_percent` | **25** | Pénalité limitée à 25 % du reste dû (plafond Loi Chatel) |
+| `axia_termination_penalty_cap_after_month` | **12** | Le plafond entre en vigueur à partir du 13ᵉ mois d'engagement |
+| `axia_flat_fee_amount` | (vide) | Alternative pour SN/ML : pénalité fixe (ex. 30 000 FCFA) au lieu du plafond % |
+| `axia_flat_fee_currency_id` | (vide) | Devise de la pénalité forfaitaire |
+| `axia_termination_calendar_country` | **FR** | Pays de référence pour les jours ouvrés / fériés |
+| `axia_termination_calendar_subdiv` | (vide, option 971 pour Guadeloupe) | Subdivision DOM-TOM |
+| `axia_legitimate_motive_policy` | **`operator_validation_required`** | Résiliation sans pénalité (déménagement, force majeure) soumise à validation opérateur |
 
-**Fonctionnement** : une tâche quotidienne (03 h 05, fuseau du tenant)
-scanne les contrats en statut **Résilié** dont la date effective de fin
-est antérieure à `aujourd'hui − N jours`. Chaque contrat concerné passe à
-l'état **Archivé**. Cet état est **immuable** — aucune modification n'est
-plus possible sur le contrat (protection légale et intégrité de
-l'historique).
+**Scénarios types** :
 
-### 5.6 Section « AXIA — Facturation par cycle »
-
-| Champ | Démo Coqla | Signification |
+| Tenant | Politique pénalité | Effet visible pour le client |
 | --- | --- | --- |
-| Journal comptable AXIA | Ventes Abonnements AXIA | Journal de vente dédié à la facturation récurrente AXIA, distinct du journal Odoo natif |
+| FR / DOM-TOM (Loi Chatel s'applique) | `loi_chatel_fr` + cap 25 % + après M+12 | Résiliation anticipée avant M+12 = 100 % du reste dû ; après M+12 = 25 % max |
+| SN / ML (Loi Chatel non applicable) | `flat_fee` + 30 000 XOF forfait | Résiliation anticipée = 30 000 XOF quel que soit le moment |
+| NC / marché B2B (négocié) | `no_penalty` | Aucune pénalité — sortie libre |
 
-Un journal `Ventes Abonnements AXIA` est provisionné automatiquement à
-la première utilisation pour chaque tenant. Il porte sa propre séquence
-de numérotation avec garanties de conformité fiscale FR (numérotation
-continue sans trou).
+#### 5.3.2 Archivage
 
-### 5.7 Champs Odoo natifs utiles
+| Champ | Valeur Coqla | Effet |
+| --- | --- | --- |
+| `axia_archive_delay_days` | **30** | Délai après résiliation avant archivage automatique |
+
+**Effet concret** : une tâche quotidienne (03 h 05, fuseau du tenant)
+scanne les contrats résiliés dont la date de fin est antérieure à
+`aujourd'hui − N jours`. Chaque contrat concerné passe à l'état
+**Archivé** — état **immuable** (protection légale et intégrité de
+l'historique : ni le contrat, ni ses lignes, ni ses métadonnées ne
+peuvent plus être modifiés).
+
+**Scénarios types** :
+
+| Marché | Délai typique | Rationale |
+| --- | --- | --- |
+| FR (Code de la consommation) | 60 j | Fenêtre de contestation client généreuse |
+| DOM-TOM (Coqla) | 30 j | Turnover client rapide, données figées plus tôt |
+| NC / SN (archivage prudent) | 90 j | Litiges plus longs, on garde les données modifiables plus longtemps |
+
+#### 5.3.3 Journal comptable AXIA
+
+| Champ | Valeur Coqla | Effet |
+| --- | --- | --- |
+| `axia_billing_journal_id` | **Ventes Abonnements AXIA** (auto) | Journal de vente dédié à la facturation récurrente AXIA |
+
+**Effet concret** : à la première émission de facture AXIA, un
+journal `Ventes Abonnements AXIA` est **provisionné automatiquement**
+pour le tenant avec sa propre séquence de numérotation (garanties de
+conformité fiscale FR : numérotation continue sans trou, immuable
+une fois posée). Toutes les factures récurrentes (prorata, cycle
+mensuel, avenant, dépôt) y sont émises, distinctes du journal
+`Customer Invoices` natif Odoo.
+
+**Rationale de séparation** : audit fiscal plus rapide (une seule
+séquence à examiner), traçabilité claire du chiffre d'affaires
+« abonnements » vs « ventes ponctuelles », rapports comptables
+séparés.
+
+### 5.4 Champs Odoo natifs utiles à connaître
 
 - **Devise** : EUR (Coqla)
 - **Pays** : Saint-Martin (partie française)
-- **Journal de vente par défaut** : Customer Invoices (INV)
+- **Journal de vente par défaut** : Customer Invoices (INV) — pour
+  les ventes ponctuelles non-abonnement
 - **Séquence de facture** : générée automatiquement par Odoo
   (`INV/YYYY/00001`)
 
@@ -340,46 +388,126 @@ sections de configuration apparaissent (activation, délais, calendriers) :
 
 ### 6.1 Section « Activation »
 
-| Champ | Démo Coqla | Signification |
+| Champ | Démo Coqla | Effet concret |
 | --- | --- | --- |
-| Activer les suspensions | ✅ | Interrupteur global du workflow |
-| Statut factures échues à considérer | (défaut) | Filtre sur les factures à surveiller |
+| Activer les suspensions | ✅ | Interrupteur global du workflow. Décoché = aucune suspension automatique n'est jamais déclenchée, quelles que soient les autres options. |
+| Statut factures échues à considérer | **En retard** | Filtre : quel statut Odoo côté facture déclenche l'entrée dans le workflow (défaut « late »). |
+
+**Scénarios types** :
+
+| Contexte | Réglage | Effet |
+| --- | --- | --- |
+| Tenant en cours d'onboarding | Case décochée | Aucune suspension déclenchée le temps de valider les données clients importées |
+| Tenant en run normal | ✅ + statut « En retard » | Le workflow entre en jeu dès qu'une facture bascule « En retard » |
 
 ### 6.2 Section « Délais et grâce »
 
-| Champ | Démo Coqla | Signification |
+| Champ | Démo Coqla | Effet concret |
 | --- | --- | --- |
 | Mode de suspension | **Délai (attendre N jours après échéance)** | Immédiat / délai / période de grâce |
-| Délai avant suspension (valeur) | **15** | Nombre de jours après échéance |
-| Unité du délai | Jour | Seule unité disponible |
-| Autoriser période de grâce | ✅ | Grâce supplémentaire après le délai |
-| Jours de grâce | (défaut) | Nombre de jours supplémentaires |
+| Délai avant suspension | **15** jours | Nombre de jours d'impayé avant la programmation de la suspension |
+| Autoriser période de grâce | ✅ | Ajoute une seconde phase après le délai |
+| Jours de grâce | **15** | Jours supplémentaires accordés au client après le délai |
+
+**Effet concret** : ces réglages définissent quand un client mauvais
+payeur voit son service suspendu. Ex. avec Coqla : facture échue le
+1ᵉʳ → délai 15 j → grâce 15 j → suspension effective le 30 du même
+mois.
+
+**Scénarios types** :
+
+| Politique commerciale | Réglages | Effet observable |
+| --- | --- | --- |
+| Ferme (marchés B2B critiques) | Mode immédiat, pas de grâce | Facture échue non payée = coupure J+1, aucun préavis |
+| Standard (Coqla, DOM-TOM) | Délai 15 j + grâce 15 j | Coupure à J+30, laisse au client un mois pour régulariser |
+| Souple (fidélisation forte) | Délai 30 j + grâce 30 j | Coupure à J+60, tolérance élevée sur retards ponctuels |
 
 ### 6.3 Section « Calendrier week-ends »
 
-| Champ | Signification |
+| Champ | Effet concret |
 | --- | --- |
-| Bloquer les suspensions le samedi | Reporter les suspensions programmées un samedi |
-| Bloquer les suspensions le dimanche | Idem pour le dimanche |
-| Autoriser les réactivations le week-end | Permettre la remise en service même le week-end |
+| Bloquer les suspensions le samedi | Reporter les suspensions programmées un samedi au lundi suivant |
+| Bloquer les suspensions le dimanche | Idem |
+| Autoriser les réactivations le week-end | Un paiement reçu le samedi peut réactiver le service tout de suite (sinon reporté au lundi) |
+
+**Scénarios types** :
+
+| Contexte | Réglages | Rationale |
+| --- | --- | --- |
+| FAI grand public FR/DOM-TOM | Bloquer sam+dim, réactivations OK week-end | Évite coupures le vendredi soir sans support disponible ; réactivation rapide = client heureux |
+| FAI B2B avec astreinte 24/7 | Aucun blocage | Toutes les opérations passent 7j/7 comme prévu contractuellement |
 
 ### 6.4 Section « Calendrier jours fériés »
 
-| Champ | Signification |
+| Champ | Effet concret |
 | --- | --- |
-| Bloquer les suspensions les jours fériés | Reporter au jour ouvré suivant |
-| Autoriser les réactivations les jours fériés | Permettre la remise en service même un jour férié |
-| Source pays des fériés | Automatique (depuis la société) ou manuelle |
+| Bloquer les suspensions les jours fériés | Une suspension prévue un férié est reportée au jour ouvré suivant |
+| Autoriser les réactivations les jours fériés | Un paiement reçu un férié réactive le service tout de suite |
+| Source pays des fériés | **`customer_country`** (défaut, précis DOM-TOM) OU `company_country` |
 
-> **Limitation** : le calendrier des jours fériés lui-même n'a pas
-> d'interface Odoo dédiée. Les fériés sont résolus automatiquement selon
-> le pays configuré ici et dans §5.3. Voir §11.4.
+**Source pays des fériés — détail important** : `customer_country`
+utilise le pays du client (donc les fériés de Guadeloupe pour un
+client GP, ceux de Nouvelle-Calédonie pour un client NC — précis
+DOM-TOM). `company_country` prend les fériés du tenant (par exemple
+Coqla = France entière). Pour un tenant multi-régions, `customer_
+country` évite les faux positifs (une suspension programmée le
+26 décembre en Alsace, jour férié local, ne serait pas reportée si
+la source était `company_country=France` seule).
+
+> **Limitation UI** : la liste des jours fériés elle-même n'a pas
+> d'interface Odoo dédiée. Les fériés sont résolus automatiquement
+> par la lib `python-holidays` selon le pays. Voir §11.4.
 
 ### 6.5 Section « Déduplication anti-doublons »
 
-| Champ | Signification |
+| Champ | Effet concret |
 | --- | --- |
-| Détection floue de doublons | Repérer les contacts similaires (fautes de frappe, variations) |
+| Détection floue de doublons | Repère les contacts similaires (fautes de frappe, variations d'orthographe) pour éviter d'envoyer deux fois une même relance à un client dont le nom apparaît sous deux graphies |
+
+**Scénarios types** :
+
+| Contexte | Réglage | Effet |
+| --- | --- | --- |
+| Base propre, contacts uniques | ❌ Désactivé (défaut) | Comportement standard, aucun matching flou |
+| Base issue d'import multi-sources | ✅ Activé | « Jean Dupont » et « Jean-Marc Dupont » à la même adresse sont considérés comme le même client pour les relances |
+
+### 6.6 Section « Mode d'approbation CLM (RBM adapter) »
+
+**Emplacement UI** : bloc rendu par le module `axia_billing_workflow`
+sur la même page `Configuration → Paramètres généraux → AXIA / Workflow
+impayés`, en dessous des blocs « Activation / Délais et grâce » (visible
+uniquement pour le groupe **Administrateur système AXIA**).
+
+| Champ | Valeurs | Effet concret |
+| --- | --- | --- |
+| Mode d'approbation suspension | **Automatique** (défaut) · Manuel · Hybride | Qui décide de couper le service : le workflow tout seul, un opérateur humain, ou un mix des deux |
+| Timeout approbation CLM (heures) | Entier — défaut **48 h** | Délai avant qu'une demande d'approbation expire (état `timeout`, fallback conservateur `cancel`) |
+| Seuil auto mode hybride (jours d'impayé) | Entier — défaut **15 j** | En mode hybride : sous ce seuil = auto-approuvé, au-delà = attente manuelle |
+
+**Effet concret** — c'est ce réglage qui décide si le workflow d'impayés
+coupe le service tout seul, ou attend l'accord d'un opérateur avant de
+couper :
+
+- **Automatique** — le workflow programme la suspension et la déclenche
+  sans intervention humaine. C'est le comportement historique (avant
+  Story 3.13). Idéal pour les tenants sans équipe recouvrement dédiée.
+- **Manuel** — le workflow programme la suspension mais **attend** que
+  l'opérateur clique « Approuver » ou « Refuser » dans son tableau de
+  bord. Sans action, la demande passe en `timeout` au bout de N heures
+  et la suspension est annulée par prudence. Idéal pour les tenants où
+  chaque coupure doit être visée par un humain.
+- **Hybride** — au-dessus d'un seuil d'impayé (défaut 15 j), la
+  suspension attend une approbation humaine ; en dessous, elle passe
+  toute seule. Compromis : les petits retards routiniers sont
+  automatisés, les gros dossiers passent en revue humaine.
+
+**Scénarios types** :
+
+| Type de tenant | Réglage recommandé | Comportement observable |
+| --- | --- | --- |
+| Petit tenant sans équipe recouvrement | **Automatique** | Suspension déclenchée sans intervention, la journée continue |
+| Tenant B2B ou clients VIP à préserver | **Manuel** + timeout 72 h | Chaque coupure est visée par un opérateur ; sans validation en 3 j, coupure annulée |
+| Tenant volume avec équipe recouvrement | **Hybride** + seuil 30 j | Impayés < 30 j = auto ; > 30 j = décision opérateur (souvent négo commerciale à ce stade) |
 
 ---
 
@@ -833,7 +961,7 @@ facture en journée pour éviter la charge sur les serveurs de production.
 
 Une deuxième tâche quotidienne (03 h 05) fait basculer automatiquement
 les contrats **Résilié** vers **Archivé** après un délai configurable
-(par défaut 30 jours — voir §5.5).
+(par défaut 30 jours — voir §5.3.2).
 
 - **Menu** : `Configuration → Technique → Tâches planifiées → AXIA CLM —
   Archive Terminated Contracts (J+30)`
@@ -1027,8 +1155,9 @@ pour un public non technique.
 ### 11.4 Pas d'interface pour le calendrier des jours fériés
 
 Aucune vue Odoo ne permet de lister ou modifier les jours fériés. Ils
-sont déterminés automatiquement par le pays configuré dans la fiche
-société (§5.3) et dans les paramètres du workflow impayés (§6.4).
+sont déterminés automatiquement par le pays configuré au provisionnement
+du tenant (§5.3.1) et par la source pays fériés du workflow impayés
+(§6.4).
 
 ### 11.5 Connexion Splynx en environnement de démonstration
 
