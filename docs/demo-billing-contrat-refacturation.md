@@ -91,9 +91,12 @@ devis, soit via un avenant après souscription ».
 | Réactivation 24/7 sur paiement | À la réception d'un paiement, réactivation automatique (même week-end / jour férié si l'option est activée). | ✅ Disponible | Requiert un contrat suspendu |
 | Interrupteur global workflow impayés | Décocher **Activer les suspensions** dans les paramètres → plus aucune suspension programmée (utile en cas d'incident majeur). | ✅ Disponible | §6.1 |
 | **Cycle mensuel automatique des factures** | Tâche quotidienne nocturne (03 h, fuseau du tenant) qui génère les factures récurrentes aux jours anniversaire des comptes de facturation. Désactivée par défaut, à activer après configuration. | ✅ Disponible | §11.2 |
-| **1ʳᵉ facture générée à l'activation du contrat** | À l'activation d'un contrat, la première facture prorata est créée automatiquement (sans intervention manuelle). | ⚠️ Livré, correctif de compatibilité en cours pour l'environnement de démonstration | §10.6 |
+| **1ʳᵉ facture générée à l'activation du contrat** | À l'activation d'un contrat, la première facture prorata est créée automatiquement (sans intervention manuelle). | ⚠️ Livré, dernier alignement de compatibilité en cours pour l'environnement de démonstration | §10.6 |
 | **Archivage automatique des contrats terminés** | Tâche quotidienne (03 h 05) qui fait basculer les contrats **Résilié** vers **Archivé** après un délai configurable (30 jours par défaut). État Archivé immuable. | ✅ Disponible | §5.6 · §10.9 |
 | **Pénalité forfaitaire (flat fee)** | Résiliation avec pénalité fixe configurable par tenant (montant + devise). Cohabite avec la Loi Chatel FR (choix par tenant). | ✅ Disponible | §5.3 |
+| **Grille tarifaire par palier d'ancienneté** | Sur la fiche produit, définir des paliers de prix qui changent après N mois d'engagement (par exemple 29,90 € les 12 premiers mois puis 39,90 € à partir du 13ᵉ mois). Résolu automatiquement au cycle mensuel. | ✅ Disponible | §7.6 |
+| **Facturation ponctuelle d'avenant** | Lors d'un avenant (upgrade offre, ajout d'option) sur un contrat actif, une facture d'ajustement est générée automatiquement pour la différence de tarif au prorata. | ✅ Disponible | §10.10 |
+| **Dépôt de garantie (caution matériel)** | Facture de dépôt émise à l'activation, rapprochement automatique du paiement, restitution à la résiliation avec retenue partielle possible (dommage matériel), pièce justificative et reçu PDF. | ✅ Disponible | §10.11 |
 | **Relances impayés automatiques** | Politique de dunning en cours de développement — visible en démo technique uniquement. | ❌ En cours | §11.3 |
 | **Calendrier des jours fériés** | Pas de menu Odoo pour lister/éditer les jours fériés — configuré via le pays du tenant. | ❌ Pas d'interface | §11.4 |
 | **Connexion Splynx réelle** | Les serveurs Splynx de démonstration pointent vers des URLs de test — utile en démo technique pour montrer la mécanique, mais pas l'appel réel. | ⚠️ Test uniquement | §11.5 |
@@ -453,7 +456,43 @@ Points de contrôle démo :
   produit unique nommé (voir §1.1)
 - **Pas d'options techniques catalogue** : les options s'ajoutent après
   souscription via l'assistant **Ajouter option**
-- **Pas de tarification par palier** (dégressivité)
+
+### 7.6 Grille tarifaire par palier d'ancienneté
+
+Sur la fiche produit, un onglet **AXIA — Paliers tarifaires** permet de
+définir des paliers de prix qui s'appliquent en fonction de l'ancienneté
+du contrat (nombre de mois depuis l'activation).
+
+![Onglet Paliers tarifaires sur le produit Triple Play — 3 paliers M+1 49,90 € / M+13 39,90 € / M+25 34,90 €](images/demo/31-product-pricing-tiers.png)
+
+**Cas d'usage typiques** :
+
+- **Offre promo qui remonte après 12 mois** : 29,90 € du mois 1 au
+  mois 12, puis 39,90 € à partir du mois 13
+- **Prix dégressif d'engagement** : 49,90 € les 12 premiers mois,
+  puis 44,90 € au-delà (récompense fidélité)
+- **Palier de mise à niveau tarifaire** : trois paliers (M+1, M+13,
+  M+25) pour un contrat d'engagement 24 mois avec ajustements
+  intermédiaires
+
+**Configuration** :
+
+| Champ | Signification |
+| --- | --- |
+| À partir du mois | Numéro de cycle mensuel à partir duquel le palier s'applique (1 = dès la première facture, 13 = à partir du 13ᵉ mois) |
+| Prix | Montant HT du palier |
+| Devise | Devise du palier (héritée du produit par défaut) |
+
+**Comportement** :
+
+- À chaque cycle mensuel, le moteur de facturation choisit
+  automatiquement le palier applicable (le plus haut « À partir du mois »
+  ≤ index du cycle courant).
+- Un événement de traçabilité est émis lors du franchissement d'un
+  palier (« tier crossed »), visible dans l'audit.
+- Coexiste avec le prix mensuel de substitution posé au niveau du
+  compte de facturation (voir §10.5) : ce dernier a la priorité en cas
+  de négociation commerciale ponctuelle sur un client.
 
 ---
 
@@ -696,6 +735,13 @@ Factures récurrentes → Nouveau`
 
 ![Liste des factures récurrentes AXIA](images/demo/22-invoices-recurring-list.png)
 
+Une fois les fonctionnalités avenant (§10.10) et dépôt (§10.11) mises
+en jeu, la liste des factures récurrentes distingue clairement chaque
+type de facture (première facture prorata, cycle mensuel, avenant,
+dépôt) via la colonne **Type facture AXIA** :
+
+![Liste des factures récurrentes avec les 3 types visibles (prorata, avenant, dépôt)](images/demo/32-invoices-list-with-deposit-amendment.png)
+
 Fiche facture (onglets **Lignes de facture**, **Écritures comptables**,
 **Autres informations**, **AXIA RBM**) :
 
@@ -799,7 +845,138 @@ les contrats **Résilié** vers **Archivé** après un délai configurable
   `contract_archived` dans l'audit avec un identifiant de corrélation
   neuf (distinct de celui de la résiliation initiale).
 
-### 10.10 Consulter l'audit trail (démo technique optionnelle)
+### 10.10 Facturation d'avenant automatique
+
+Lorsqu'on modifie un contrat actif via l'assistant **Ajouter option** ou
+**Upgrade offre** (voir démo étendue §10.4), la différence de tarif au
+prorata est **facturée automatiquement**. Aucune action manuelle n'est
+nécessaire côté facturation.
+
+**Exemple typique** :
+
+- Contrat Triple Play (49,90 €/mois) actif depuis 3 mois
+- 15/09 : ajout d'une option TV+ (5 €/mois) via l'assistant avenant
+- Une facture d'ajustement de type **Prorata avenant** est émise
+  immédiatement pour 5 € × (jours restants du mois / jours du mois)
+- À partir du cycle mensuel suivant, la facture récurrente inclut
+  automatiquement la nouvelle ligne à son prix plein
+
+**Traçabilité** : la facture d'avenant est visible dans le menu
+`AXIA — RBM → Factures récurrentes` et porte un lien vers le compte de
+facturation et le contrat modifié.
+
+Fiche de la facture d'avenant émise sur le compte BILL-000006, pour la
+période 15/09 → 30/09 :
+
+![Fiche facture d'avenant — vue générale](images/demo/34-invoice-amendment-form.png)
+
+Onglet **AXIA RBM** — la facture porte le type **Ajustement prorata
+(avenant)** et le cycle courant du compte de facturation :
+
+![Onglet AXIA RBM sur la facture d'avenant — type et cycle](images/demo/34b-invoice-amendment-axia-tab.png)
+
+### 10.11 Dépôt de garantie (caution matériel)
+
+Pour les offres qui incluent une caution (box, ONT, équipement fourni),
+un **dépôt de garantie** peut être exigé à l'activation. Le workflow
+complet :
+
+1. **Émission de la facture de dépôt** — à l'activation du contrat, une
+   facture de type **Dépôt** est émise en supplément de la 1ʳᵉ facture
+   prorata. La ligne du dépôt est **sans TVA** (obligation légale — un
+   dépôt de garantie n'est pas un revenu tant qu'il n'est pas conservé).
+2. **Mention légale** — le PDF de la facture de dépôt affiche une
+   mention conditionnelle rappelant que la somme est restituable dans
+   les conditions du contrat.
+3. **Rapprochement automatique du paiement** — lorsque le client règle
+   la facture de dépôt, l'enregistrement du dépôt passe automatiquement
+   à l'état **Payé**. Aucune saisie manuelle n'est nécessaire.
+4. **Filet de rattrapage** — une tâche nocturne (03 h 30) rattrape les
+   paiements qui auraient été pointés hors du chemin standard.
+
+**Menu** : `AXIA — RBM → Dépôts de garantie` — liste des dépôts avec
+statut (En attente, Payé, Remboursé, Retenu partiellement, Retenu
+intégralement).
+
+![Menu Dépôts de garantie — liste avec message d'accueil expliquant le workflow](images/demo/35-deposits-list.png)
+
+Fiche de la facture de dépôt émise à l'activation (100 € HT, sans
+TVA) :
+
+![Fiche facture de dépôt — vue générale](images/demo/33-invoice-deposit-form.png)
+
+Onglet **AXIA RBM** — la facture porte le type **Dépôt de garantie** et
+est rattachée au compte de facturation :
+
+![Onglet AXIA RBM sur la facture de dépôt — type Dépôt de garantie](images/demo/33b-invoice-deposit-axia-tab.png)
+
+**Cas d'usage typique** :
+
+- Fibre 100M avec box fournie → dépôt de 100 € à l'activation
+- Le client règle la 1ʳᵉ facture (prorata + dépôt) en une seule
+  opération SEPA → le dépôt passe automatiquement à **Payé** dès la
+  réception du paiement bancaire
+
+#### 10.11.1 Restitution du dépôt à la résiliation
+
+Une fois le dépôt encaissé, la fiche du dépôt affiche un bouton
+**Restituer le dépôt** dans son en-tête (réservé au rôle **Billing
+Manager**). Le statut du dépôt suit un cycle complet à 5 états —
+**En attente de paiement → Encaissé → Restitué / Retenu partiellement
+/ Retenu intégralement** — visibles en permanence dans la barre de
+progression.
+
+![Fiche dépôt encaissé — bouton « Restituer le dépôt » disponible](images/demo/36-deposit-paid-with-refund-button.png)
+
+**Ouverture de l'assistant** — un clic sur **Restituer le dépôt**
+ouvre un assistant modal qui pré-remplit le montant remboursé à
+100 % par défaut. L'opérateur peut ajuster :
+
+- **Montant remboursé** / **Montant retenu** — bi-directionnels
+  (la somme reste égale au dépôt initial)
+- **Motif de retenue** — obligatoire dès que la retenue est
+  strictement positive. Menu déroulant à 4 valeurs :
+  *Dommage équipement*, *Non-restitution équipement*, *Impayé
+  résiduel*, *Autre motif contractuel*.
+- **Pièces justificatives** — obligatoires dès que la retenue est
+  strictement positive (photo, PV de restitution, courrier…). Tout
+  fichier joint est archivé sur la fiche du dépôt et référencé dans
+  l'audit.
+- **Commentaire libre** — trace opérateur (facultatif).
+- **Journal comptable + méthode de paiement** — journal bancaire du
+  tenant + méthode manuelle par défaut ; peuvent être ajustés si le
+  tenant utilise plusieurs journaux.
+
+Un bandeau d'avertissement rappelle que la validation est
+**irréversible** et qu'un événement `deposit_refunded` sera émis vers
+la partie contrats (CLM).
+
+![Assistant « Restitution dépôt » rempli — retenue partielle 25 € sur 100 € pour dommage équipement](images/demo/37-refund-wizard-partial.png)
+
+**Après confirmation** — la fiche du dépôt bascule automatiquement à
+**Retenu partiellement** (ou **Restitué** / **Retenu intégralement**
+selon la répartition), le paiement de restitution est visible en
+lien direct (numéro de pièce banque `PBNK…`), la date et l'heure de
+restitution sont horodatées, l'échéance légale française (10 jours)
+est affichée à titre indicatif, et la ou les pièces justificatives
+apparaissent en pièces jointes de la fiche.
+
+![Fiche dépôt après restitution partielle — statut « Retenu partiellement », lien vers le paiement bancaire, pièce justificative attachée](images/demo/38-deposit-retained-partial.png)
+
+**Reçu de restitution** — un bouton **Imprimer reçu restitution**
+apparaît sur la fiche dès que le dépôt est restitué (partiellement ou
+intégralement). Il produit un PDF récapitulatif reprenant les
+montants, le motif de retenue, les conditions d'origine et la
+référence au paiement bancaire.
+
+![Reçu PDF de restitution — modèle propre à imprimer et remettre au client](images/demo/39-refund-receipt.png)
+
+**Bout-en-bout** : chaque étape du cycle (création du dépôt, émission
+de la facture, encaissement, restitution avec ou sans retenue) est
+tracée dans l'audit avec un identifiant de corrélation stable, ce qui
+permet une reconstitution forensique complète en cas de litige.
+
+### 10.12 Consulter l'audit trail (démo technique optionnelle)
 
 **Menu** : `Configuration → Technique → Audit AXIA → Événements`
 (nécessite le groupe **AXIA / Audit Admin**)
@@ -830,11 +1007,12 @@ et doit être activée après configuration du tenant (§10.8).
 
 **Limitation actuelle** : la génération automatique de la **première
 facture** à l'activation du contrat n'est pas encore opérationnelle sur
-l'environnement de démonstration. En attendant le correctif, la première
-facture est créée manuellement selon §10.6. Les factures récurrentes des
-cycles suivants seront concernées par la même contrainte.
+l'environnement de démonstration — un dernier alignement de compatibilité
+est en cours entre les modules Contrat et Facturation. En attendant, la
+première facture est créée manuellement selon §10.6.
 
-**Statut** : fonctionnalité livrée, correctif de compatibilité en cours.
+**Statut** : fonctionnalité livrée, alignement de compatibilité en
+finalisation.
 
 ### 11.3 Workflow de relances (dunning)
 
